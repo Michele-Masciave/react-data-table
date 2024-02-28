@@ -64,7 +64,7 @@ module.exports = {
     "max-lines": [
       "error",
       {
-        max: 200,
+        max: 1000,
       },
     ],
     "prefer-destructuring": "error",

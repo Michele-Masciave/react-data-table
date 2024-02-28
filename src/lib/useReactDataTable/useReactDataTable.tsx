@@ -3,11 +3,14 @@ import { useReactDataTableState } from "../useReactDataTableState/useReactDataTa
 import Skeleton from "react-loading-skeleton";
 import { useReactDataTableProps } from "./useReactDataTableProps";
 import { useReactDataTableResult } from "./useReactDataTableResult";
+import { RowWithSortIndex } from "../ReactDataTable/ReactDataTable";
+import { useSortable } from "@dnd-kit/sortable";
 
 /**
  * A react hook that returns a react table instance and the state of the table
  */
-const useReactDataTable = <TData,>(props: useReactDataTableProps<TData>): useReactDataTableResult<TData> => {
+const useReactDataTable = <TData extends RowWithSortIndex>(props: useReactDataTableProps<TData>): useReactDataTableResult<TData> => {
+  //FIXME maybe add in useReactDataTableProps the id should be used for dragging
   const {
     data = [],
     columns,
@@ -54,9 +57,35 @@ const useReactDataTable = <TData,>(props: useReactDataTableProps<TData>): useRea
   }));
   const skeletonData = Array.from({ length: paginationInternal.pageSize }, () => ({} as TData));
 
+  // FIXME
+
+  // Cell Component
+  const RowDragHandleCell = ({ rowId }: { rowId: string }) => {
+    const { attributes, listeners } = useSortable({
+      id: rowId,
+      resizeObserverConfig: {},
+    });
+    return (
+      // Alternatively, you could set these attributes on the rows themselves
+      <button {...attributes} {...listeners}>
+        🟰
+      </button>
+    );
+  };
+
+  const columnsDraggable = [
+    {
+      id: "drag-handle",
+      header: "Move",
+      cell: ({ row }) => <RowDragHandleCell rowId={row.id} />,
+      size: 60,
+    },
+    ...columns,
+  ];
+
   const table = useReactTable<TData>({
     data: isLoading ? skeletonData : data,
-    columns: isLoading ? skeletonColumns : columns,
+    columns: isLoading ? skeletonColumns : columnsDraggable,
 
     onColumnFiltersChange: (filtersOrUpdaterFn) => {
       const newFilter = typeof filtersOrUpdaterFn !== "function" ? filtersOrUpdaterFn : filtersOrUpdaterFn(effectiveColumnFilters);
@@ -92,6 +121,8 @@ const useReactDataTable = <TData,>(props: useReactDataTableProps<TData>): useRea
       enableColumnFilter: false,
       enableSorting: false,
     },
+
+    getRowId: (row) => `${row.sortIndex}`, // FIXME: which id? string or number?
 
     ...reactTableOptions,
   });
